@@ -1,0 +1,523 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<title>グループホーム記録システム（デモ）</title>
+<style>
+:root{
+  --bg:#f4f7f6; --card:#ffffff; --ink:#1f2d2b; --sub:#5b6b68; --line:#d9e2e0;
+  --main:#0f766e; --main-weak:#e0f2ef; --warn:#b45309; --warn-weak:#fef3c7;
+  --err:#b91c1c; --err-weak:#fee2e2; --ok:#15803d; --ok-weak:#dcfce7; --info:#1d4ed8; --info-weak:#dbeafe;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:"Hiragino Sans","Noto Sans JP","Yu Gothic",sans-serif;font-size:17px;line-height:1.6}
+header{background:var(--main);color:#fff;padding:12px 16px;display:flex;flex-wrap:wrap;gap:10px;align-items:center;justify-content:space-between}
+header h1{font-size:19px;margin:0}
+.demo-badge{background:#fff;color:var(--main);border-radius:999px;padding:2px 10px;font-size:13px;font-weight:bold;margin-left:6px}
+.hdr-ctrls{display:flex;gap:8px;flex-wrap:wrap}
+.hdr-ctrls select{font-size:15px;padding:6px 8px;border-radius:8px;border:none}
+nav{display:flex;gap:4px;background:#fff;border-bottom:1px solid var(--line);overflow-x:auto;padding:0 8px;position:sticky;top:0;z-index:5}
+nav button{flex:0 0 auto;border:none;background:none;padding:14px 14px;font-size:16px;color:var(--sub);border-bottom:3px solid transparent;cursor:pointer;position:relative}
+nav button.active{color:var(--main);border-bottom-color:var(--main);font-weight:bold}
+.count{display:inline-block;min-width:20px;padding:0 6px;border-radius:999px;background:var(--err);color:#fff;font-size:12px;margin-left:4px;line-height:20px}
+main{max-width:980px;margin:0 auto;padding:16px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:16px;margin-bottom:14px}
+.card h2{font-size:18px;margin:0 0 10px}
+.card h3{font-size:16px;margin:14px 0 8px;color:var(--sub)}
+.note{font-size:14px;color:var(--sub)}
+.banner{border-radius:10px;padding:10px 12px;font-size:14px;margin-bottom:12px}
+.banner.info{background:var(--info-weak);color:#1e3a8a}
+.banner.warn{background:var(--warn-weak);color:#78350f}
+.grid{display:grid;gap:10px}
+.g2{grid-template-columns:repeat(2,minmax(0,1fr))}
+.g4{grid-template-columns:repeat(4,minmax(0,1fr))}
+@media(max-width:640px){.g4{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.res-btn{border:2px solid var(--line);background:#fff;border-radius:12px;padding:12px;text-align:left;cursor:pointer;font-size:16px}
+.res-btn.sel{border-color:var(--main);background:var(--main-weak)}
+.res-btn small{display:block;color:var(--sub);font-size:13px}
+label.f{display:block;font-size:14px;color:var(--sub);margin-bottom:4px}
+.num{display:flex;align-items:center;gap:6px}
+.num input{width:100%;font-size:20px;padding:8px;border:2px solid var(--line);border-radius:10px;text-align:center}
+.num button{width:44px;height:44px;border-radius:10px;border:1px solid var(--line);background:#fff;font-size:22px;cursor:pointer;flex:0 0 auto}
+.chips{display:flex;flex-wrap:wrap;gap:8px}
+.chip{border:2px solid var(--line);background:#fff;border-radius:999px;padding:8px 14px;font-size:16px;cursor:pointer;min-height:44px}
+.chip.on{border-color:var(--main);background:var(--main);color:#fff}
+.row{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin-bottom:8px}
+.row .lbl{width:78px;font-size:15px;color:var(--sub)}
+textarea{width:100%;font-size:17px;padding:10px;border:2px solid var(--line);border-radius:10px;min-height:96px;font-family:inherit}
+.btn{border:none;border-radius:12px;padding:12px 18px;font-size:17px;cursor:pointer;min-height:48px;font-weight:bold}
+.btn.p{background:var(--main);color:#fff}
+.btn.s{background:#fff;border:2px solid var(--main);color:var(--main)}
+.btn.w{background:var(--warn);color:#fff}
+.btn.d{background:var(--err);color:#fff}
+.btn:disabled{opacity:.4;cursor:not-allowed}
+.btn.sm{padding:6px 12px;font-size:14px;min-height:36px}
+.mic{background:#fff;border:2px solid var(--err);color:var(--err)}
+.mic.rec{background:var(--err);color:#fff}
+.actions{display:flex;flex-wrap:wrap;gap:10px;margin-top:12px}
+.draft-line{border:1px solid var(--line);border-radius:10px;padding:8px 10px;margin-bottom:8px;background:#fafcfb}
+.draft-line textarea{min-height:44px;border-width:1px;font-size:16px}
+.src{display:inline-block;font-size:12px;background:var(--main-weak);color:var(--main);border-radius:6px;padding:1px 8px;margin-bottom:4px}
+.chk{display:flex;gap:10px;align-items:flex-start;background:var(--warn-weak);border-radius:10px;padding:10px;margin-bottom:8px}
+.chk input{width:24px;height:24px;flex:0 0 auto;margin-top:2px}
+.badge{display:inline-block;font-size:13px;border-radius:999px;padding:2px 10px;font-weight:bold}
+.st-submitted{background:var(--info-weak);color:var(--info)}
+.st-returned{background:var(--warn-weak);color:var(--warn)}
+.st-approved{background:var(--ok-weak);color:var(--ok)}
+.list-item{display:flex;justify-content:space-between;align-items:center;gap:10px;border-bottom:1px solid var(--line);padding:10px 0;flex-wrap:wrap}
+.list-item:last-child{border-bottom:none}
+table{width:100%;border-collapse:collapse;font-size:14px}
+th,td{border-bottom:1px solid var(--line);padding:8px 6px;text-align:left;vertical-align:top}
+th{color:var(--sub);font-weight:normal;background:#f8faf9}
+.tbl-wrap{overflow-x:auto}
+.err-item{display:flex;gap:10px;align-items:flex-start;padding:10px;border-radius:10px;margin-bottom:8px}
+.err-item.e{background:var(--err-weak)}
+.err-item.w{background:var(--warn-weak)}
+.err-item.ok{background:var(--ok-weak)}
+.err-item .k{font-weight:bold;white-space:nowrap}
+.hand{border-left:5px solid var(--main);padding:8px 12px;background:#fff;margin-bottom:8px;border-radius:0 10px 10px 0}
+.hand.urgent{border-left-color:var(--err)}
+.modal-bg{position:fixed;inset:0;background:rgba(0,0,0,.45);display:none;align-items:flex-start;justify-content:center;padding:20px 12px;overflow-y:auto;z-index:20}
+.modal-bg.open{display:flex}
+.modal{background:#fff;border-radius:14px;max-width:760px;width:100%;padding:18px}
+.diff-old{background:var(--err-weak);text-decoration:line-through;padding:0 3px}
+.diff-new{background:var(--ok-weak);padding:0 3px}
+.hidden{display:none}
+.toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:#1f2d2b;color:#fff;padding:12px 18px;border-radius:10px;font-size:15px;z-index:30;opacity:0;transition:opacity .3s;pointer-events:none;max-width:90%}
+.toast.show{opacity:1}
+footer{text-align:center;font-size:13px;color:var(--sub);padding:20px 16px 40px}
+</style>
+</head>
+<body>
+<header>
+  <h1 id="appTitle">グループホーム記録システム<span class="demo-badge">デモ版</span></h1>
+  <div class="hdr-ctrls">
+    <select id="userSel" aria-label="ログイン中の職員"></select>
+    <select id="langSel" aria-label="表示言語">
+      <option value="ja">日本語</option>
+      <option value="easy">やさしい日本語</option>
+      <option value="en">English</option>
+    </select>
+  </div>
+</header>
+<nav id="nav"></nav>
+<main id="main"></main>
+<footer>
+  このデモは架空のデータだけで動いています。実在の個人情報は入力しないでください。<br>
+  入力内容はこの端末のブラウザ内にだけ保存されます。<button class="btn sm s" id="resetBtn" style="margin-top:8px">デモを初期状態に戻す</button>
+</footer>
+
+<div class="modal-bg" id="modalBg"><div class="modal" id="modal"></div></div>
+<div class="toast" id="toast"></div>
+
+<script>
+// ===================== 架空データ =====================
+const RESIDENTS = [
+  {id:'r1', name:'サンプル 太郎', room:'101号室', note:'糖尿病・インスリンなし'},
+  {id:'r2', name:'テスト 花子', room:'102号室', note:'てんかん既往'},
+  {id:'r3', name:'デモ 一郎', room:'103号室', note:'嚥下注意・刻み食'},
+  {id:'r4', name:'見本 さくら', room:'201号室', note:'夜間不眠傾向'},
+];
+const USERS = [
+  {id:'u1', name:'グエン（職員）', role:'staff'},
+  {id:'u2', name:'田中（職員）', role:'staff'},
+  {id:'u3', name:'佐藤（サービス管理責任者）', role:'admin'},
+];
+function ymd(x){return x.getFullYear()+'-'+String(x.getMonth()+1).padStart(2,'0')+'-'+String(x.getDate()).padStart(2,'0')}
+const TODAY = ymd(new Date());
+function addDays(d,n){const [y,m,dd]=d.split('-').map(Number);return ymd(new Date(y,m-1,dd+n))}
+const PHRASES = ['表情おだやかに過ごされた。','日中はリビングでテレビを見て過ごされた。','入浴された。','散歩に出かけられた。','夜間よく眠れていた。','食事の時にむせこみがあった。','膝の痛みの訴えがあった。','ご家族から電話があった。'];
+const MOODS = ['おだやか','元気','落ち着かない','眠そう','体調不良の訴え','入浴','外出','通院'];
+
+// ===================== 多言語 =====================
+const I18N = {
+  ja:{tab_input:'記録入力',tab_hand:'申し送り',tab_appr:'確認・承認',tab_check:'チェック',tab_log:'操作履歴',
+      who:'だれの記録？',vital:'バイタル',temp:'体温',bp_h:'血圧（上）',bp_l:'血圧（下）',pulse:'脈拍',
+      meal:'食事',med:'服薬',exc:'排泄',mood:'様子',memo:'メモ（話して入力できます）',phrase:'定型文',
+      speak:'🎤 話して入力',stop:'■ 止める',make:'AIで記録の原案を作る',
+      all:'全量',half:'半分',little:'少し',none:'なし',done:'済',notyet:'未',urine:'尿',stool:'便',
+      st_normal:'普通',st_hard:'硬め',st_soft:'軟便',st_none:'なし'},
+  easy:{tab_input:'きろくを かく',tab_hand:'もうしおくり',tab_appr:'かくにん',tab_check:'チェック',tab_log:'りれき',
+      who:'だれの きろく ですか？',vital:'からだの ようす',temp:'ねつ',bp_h:'けつあつ（うえ）',bp_l:'けつあつ（した）',pulse:'みゃく',
+      meal:'ごはん',med:'くすり',exc:'トイレ',mood:'ようす',memo:'メモ（はなして にゅうりょく できます）',phrase:'よく つかう ぶん',
+      speak:'🎤 はなす',stop:'■ とめる',make:'AIで きろくを つくる',
+      all:'ぜんぶ',half:'はんぶん',little:'すこし',none:'たべない',done:'のんだ',notyet:'まだ',urine:'おしっこ',stool:'うんち',
+      st_normal:'ふつう',st_hard:'かたい',st_soft:'やわらかい',st_none:'でない'},
+  en:{tab_input:'New record',tab_hand:'Handover',tab_appr:'Review',tab_check:'Checks',tab_log:'Audit log',
+      who:'Which resident?',vital:'Vital signs',temp:'Temp',bp_h:'BP (high)',bp_l:'BP (low)',pulse:'Pulse',
+      meal:'Meals',med:'Medication',exc:'Toilet',mood:'Condition',memo:'Notes (voice input available)',phrase:'Common phrases',
+      speak:'🎤 Speak',stop:'■ Stop',make:'Create draft with AI',
+      all:'All',half:'Half',little:'Little',none:'None',done:'Taken',notyet:'Not yet',urine:'Urine',stool:'Stool',
+      st_normal:'Normal',st_hard:'Hard',st_soft:'Soft',st_none:'None'}
+};
+// 帳票・記録本文は日本語で保存（表示言語に関係なく統一）
+const MEAL_JA={all:'全量',half:'半分',little:'少し',none:'なし'};
+const STOOL_JA={normal:'普通',hard:'硬め',soft:'軟便',none:'なし'};
+
+// ===================== 状態 =====================
+let S;
+function seed(){
+  const recs=[];
+  // 過去2日分の承認済み記録（請求チェック用に1件だけ欠けさせる）
+  [-2,-1].forEach(off=>{
+    RESIDENTS.forEach(r=>{
+      if(off===-1 && r.id==='r4') return; // 昨日の見本さくらの記録が無い → 請求チェックで検出
+      const d=addDays(TODAY,off);
+      const text=`${r.name}さん。体温36.5℃、血圧122/78、脈拍70。食事は朝・昼・夕とも全量摂取。服薬はすべて済。表情おだやかに過ごされた。`;
+      recs.push({id:'s'+off+r.id,residentId:r.id,date:d,input:null,
+        draft:[{text,src:'過去データ',flag:false}],handover:[],checks:[],
+        status:'approved',createdBy:'u2',approvedBy:'u3',comment:'',
+        versions:[{at:d+' 18:00',by:'田中（職員）',text,act:'確定'}]});
+    });
+  });
+  return {
+    user:'u1', lang:'ja', tab:'input',
+    records:recs,
+    audit:[{at:addDays(TODAY,-1)+' 18:05',by:'佐藤（サービス管理責任者）',act:'承認',target:'過去記録（一括）',detail:'前日分の記録を承認'}],
+    // シフトと勤怠（デモ用）
+    shifts:[
+      {staff:'グエン（職員）',shift:'07:00-16:00',actual:'06:55-16:05'},
+      {staff:'田中（職員）',shift:'16:00-翌09:00',actual:'16:00-（退勤打刻なし）'},
+      {staff:'鈴木（職員）',shift:'09:00-18:00',actual:'10:20-18:00'},
+    ],
+    billing:[ // 請求チェックシート上の利用実績（デモ）
+      {date:addDays(TODAY,-1),residentId:'r4',used:true},
+    ],
+    lastCheck:null,
+  };
+}
+function load(){
+  try{const s=localStorage.getItem('ghdemo_v1'); if(s){S=JSON.parse(s);return}}catch(e){}
+  S=seed();
+}
+function save(){try{localStorage.setItem('ghdemo_v1',JSON.stringify(S))}catch(e){}}
+const t=k=>(I18N[S.lang]||I18N.ja)[k]||I18N.ja[k]||k;
+const me=()=>USERS.find(u=>u.id===S.user);
+const resName=id=>RESIDENTS.find(r=>r.id===id).name;
+function now(){const d=new Date();return ymd(d)+' '+d.toTimeString().slice(0,5)}
+function esc(s){return String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
+function toast(m){const el=document.getElementById('toast');el.textContent=m;el.classList.add('show');clearTimeout(toast._t);toast._t=setTimeout(()=>el.classList.remove('show'),2600)}
+function log(act,target,detail){S.audit.unshift({at:now(),by:me().name,act,target,detail});save()}
+
+// ===================== 入力フォームの状態 =====================
+let F=null;
+function blankForm(){return {residentId:null,temp:'',sys:'',dia:'',pulse:'',
+  meals:{朝:'',昼:'',夕:''},meds:{朝:'',昼:'',夕:'',寝る前:''},urine:'',stool:'',moods:[],memo:'',draft:null}}
+
+// ===================== 「AI」原案作成（デモ用の再現） =====================
+// 入力にない事実は書かない。各文に出どころを付ける。不足・異常は「要確認」に出す。
+function makeDraft(f){
+  const name=resName(f.residentId), lines=[], checks=[], hand=[];
+  // バイタル
+  const v=[];
+  if(f.temp!=='') v.push(`体温${f.temp}℃`);
+  if(f.sys!==''&&f.dia!=='') v.push(`血圧${f.sys}/${f.dia}`);
+  if(f.pulse!=='') v.push(`脈拍${f.pulse}`);
+  if(v.length) lines.push({text:`${v.join('、')}。`,src:'バイタル入力'});
+  if(f.temp==='') checks.push('体温が未入力です。測定したか確認してください。');
+  if(f.sys===''||f.dia==='') checks.push('血圧が未入力です。');
+  const tp=parseFloat(f.temp);
+  if(!isNaN(tp)&&tp>=37.5){checks.push(`体温が${tp}℃です。看護師・管理者へ報告したか確認してください。`);hand.push({text:`体温${tp}℃（37.5℃以上）。経過観察が必要です。`,urgent:true,src:'バイタル入力'})}
+  const sy=parseInt(f.sys); if(!isNaN(sy)&&(sy>=160||sy<=90)){checks.push(`血圧（上）が${sy}です。再測定・報告の有無を確認してください。`);hand.push({text:`血圧（上）${sy}。再測定してください。`,urgent:true,src:'バイタル入力'})}
+  // 食事
+  const ml=Object.entries(f.meals).filter(([k,v])=>v).map(([k,v])=>`${k}食${MEAL_JA[v]}`);
+  if(ml.length) lines.push({text:`食事は${ml.join('、')}。`,src:'食事入力'});
+  const mealMissing=Object.entries(f.meals).filter(([k,v])=>!v).map(([k])=>k);
+  if(mealMissing.length) checks.push(`食事（${mealMissing.join('・')}）が未入力です。`);
+  if(Object.values(f.meals).some(v=>v==='none'||v==='little')) hand.push({text:'食事量が少ない時間帯がありました。次の食事の様子を見てください。',urgent:false,src:'食事入力'});
+  // 服薬
+  const done=Object.entries(f.meds).filter(([k,v])=>v==='done').map(([k])=>k);
+  const not=Object.entries(f.meds).filter(([k,v])=>v==='notyet').map(([k])=>k);
+  const blank=Object.entries(f.meds).filter(([k,v])=>!v).map(([k])=>k);
+  if(done.length) lines.push({text:`服薬は${done.join('・')}済。`,src:'服薬入力'});
+  if(not.length){lines.push({text:`${not.join('・')}の服薬は未。`,src:'服薬入力'});checks.push(`服薬「${not.join('・')}」が未です。理由と対応を確認してください。`);hand.push({text:`服薬未：${not.join('・')}。必ず確認してください。`,urgent:true,src:'服薬入力'})}
+  if(blank.length) checks.push(`服薬（${blank.join('・')}）が未入力です。`);
+  // 排泄
+  const ex=[]; if(f.urine!=='') ex.push(`排尿${f.urine}回`); if(f.stool) ex.push(`排便${STOOL_JA[f.stool]}`);
+  if(ex.length) lines.push({text:`${ex.join('、')}。`,src:'排泄入力'});
+  // 様子
+  if(f.moods.length) lines.push({text:`様子：${f.moods.join('、')}。`,src:'様子の選択'});
+  if(f.moods.includes('体調不良の訴え')) hand.push({text:'体調不良の訴えあり。内容をメモで確認してください。',urgent:true,src:'様子の選択'});
+  // メモ（文ごとに、そのまま原文を根拠として使う）
+  const memoSents=(f.memo||'').split(/(?<=[。！？!?\n])/).map(s=>s.trim()).filter(Boolean);
+  const KEY=/転倒|転び|ころ|痛|けが|怪我|受診|病院|熱|むせ|吐|家族|電話|眠れ|不眠|薬|拒否|怒|興奮|ヒヤリ/;
+  memoSents.forEach(s=>{
+    const sent=/[。！？!?]$/.test(s)?s:s+'。';
+    lines.push({text:sent,src:`メモ：「${s.length>18?s.slice(0,18)+'…':s}」`});
+    if(KEY.test(s)) hand.push({text:sent,urgent:/転倒|転び|けが|怪我|受診|熱|吐|ヒヤリ/.test(s),src:'メモ'});
+    if(/転倒|転び|ヒヤリ/.test(s)) checks.push('転倒・ヒヤリハットに関する記載があります。事故・ヒヤリハット報告が必要か確認してください。');
+  });
+  if(!memoSents.length) checks.push('メモが空です。特記事項がない場合はそのままでかまいません。');
+  return {lines:[{text:`${name}さん。`,src:'利用者の選択'},...lines].map(l=>({...l,flag:false})),checks:checks.map(c=>({text:c,ok:false})),hand};
+}
+
+// ===================== 画面描画 =====================
+function render(){
+  document.documentElement.lang=S.lang==='en'?'en':'ja';
+  document.getElementById('langSel').value=S.lang;
+  const us=document.getElementById('userSel');
+  us.innerHTML=USERS.map(u=>`<option value="${u.id}" ${u.id===S.user?'selected':''}>ログイン：${u.name}</option>`).join('');
+  const pend=S.records.filter(r=>r.status==='submitted').length;
+  const errs=runChecks().filter(e=>e.lv!=='ok').length;
+  const tabs=[['input',t('tab_input')],['hand',t('tab_hand')],['appr',t('tab_appr'),pend],['check',t('tab_check'),errs],['log',t('tab_log')]];
+  document.getElementById('nav').innerHTML=tabs.map(([k,l,c])=>`<button data-tab="${k}" class="${S.tab===k?'active':''}">${l}${c?`<span class="count">${c}</span>`:''}</button>`).join('');
+  const m=document.getElementById('main');
+  ({input:renderInput,hand:renderHand,appr:renderAppr,check:renderCheck,log:renderLog})[S.tab](m);
+}
+
+function numField(key,label,step){
+  return `<div><label class="f">${label}</label><div class="num">
+    <button data-step="${key}" data-d="-${step}" aria-label="減らす">−</button>
+    <input inputmode="decimal" data-num="${key}" value="${esc(F[key])}">
+    <button data-step="${key}" data-d="${step}" aria-label="増やす">＋</button></div></div>`;
+}
+function chipRow(group,key,opts){
+  const cur=group==='meals'?F.meals[key]:group==='meds'?F.meds[key]:F[key];
+  return opts.map(([v,l])=>`<button class="chip ${cur===v?'on':''}" data-chip="${group}|${key}|${v}">${l}</button>`).join('');
+}
+
+function renderInput(m){
+  if(!F) F=blankForm();
+  const r=F.residentId;
+  let h=`<div class="banner info">タブレットで使う想定の画面です。選ぶ・押す・話すだけで記録できます。右上で表示言語（やさしい日本語・English）を切り替えられます。</div>
+  <div class="card"><h2>${t('who')}</h2><div class="grid g2">
+  ${RESIDENTS.map(x=>`<button class="res-btn ${r===x.id?'sel':''}" data-res="${x.id}">${x.name}<small>${x.room}・${x.note}</small></button>`).join('')}
+  </div></div>`;
+  if(!r){m.innerHTML=h;return}
+  h+=`<div class="card"><h2>${t('vital')}</h2><div class="grid g4">
+    ${numField('temp',t('temp')+'（℃）',0.1)}${numField('sys',t('bp_h'),1)}${numField('dia',t('bp_l'),1)}${numField('pulse',t('pulse'),1)}
+  </div></div>
+  <div class="card"><h2>${t('meal')}</h2>
+    ${['朝','昼','夕'].map(k=>`<div class="row"><span class="lbl">${k}</span><div class="chips">${chipRow('meals',k,[['all',t('all')],['half',t('half')],['little',t('little')],['none',t('none')]])}</div></div>`).join('')}
+  </div>
+  <div class="card"><h2>${t('med')}</h2>
+    ${['朝','昼','夕','寝る前'].map(k=>`<div class="row"><span class="lbl">${k}</span><div class="chips">${chipRow('meds',k,[['done',t('done')],['notyet',t('notyet')]])}</div></div>`).join('')}
+  </div>
+  <div class="card"><h2>${t('exc')}</h2>
+    <div class="row"><span class="lbl">${t('urine')}</span><div class="chips">${[0,1,2,3,4,5,6].map(n=>`<button class="chip ${F.urine===String(n)?'on':''}" data-chip="x|urine|${n}">${n}</button>`).join('')}</div></div>
+    <div class="row"><span class="lbl">${t('stool')}</span><div class="chips">${chipRow('x','stool',[['normal',t('st_normal')],['hard',t('st_hard')],['soft',t('st_soft')],['none',t('st_none')]])}</div></div>
+  </div>
+  <div class="card"><h2>${t('mood')}</h2><div class="chips">
+    ${MOODS.map(x=>`<button class="chip ${F.moods.includes(x)?'on':''}" data-mood="${x}">${x}</button>`).join('')}
+  </div></div>
+  <div class="card"><h2>${t('memo')}</h2>
+    <textarea id="memo" placeholder="例：午後に居室で転びそうになったが、職員が支えてけがはなかった。">${esc(F.memo)}</textarea>
+    <div class="actions" style="margin-top:8px"><button class="btn mic ${rec?'rec':''}" id="micBtn">${rec?t('stop'):t('speak')}</button></div>
+    <p class="note">※デモではブラウザ標準の音声認識（Chrome推奨）を使っています。本番では国内リージョンの音声認識を使い、音声が意図しない外部サービスへ送られないようにします。</p>
+    <h3>${t('phrase')}</h3><div class="chips">${PHRASES.map((p,i)=>`<button class="chip" data-phrase="${i}">＋ ${p}</button>`).join('')}</div>
+  </div>
+  <div class="actions"><button class="btn p" id="makeBtn">🤖 ${t('make')}</button><button class="btn s" id="clearBtn">入力をやり直す</button></div>`;
+  if(F.draft) h+=renderDraftPanel();
+  m.innerHTML=h;
+}
+
+function renderDraftPanel(){
+  const d=F.draft, allOk=d.checks.every(c=>c.ok);
+  return `<div class="card" id="draftCard" style="margin-top:14px;border:2px solid var(--main)">
+  <h2>AIが作った記録の原案</h2>
+  <div class="banner warn">デモ版：AIの処理を再現しています（本番は国内リージョンの生成AIを使用）。<br>
+  入力にない事実は書きません。各文に「どこから来た内容か」を表示しています。内容を確認・修正してから確定してください。</div>
+  ${d.lines.map((l,i)=>`<div class="draft-line"><span class="src">出どころ：${esc(l.src)}</span><textarea data-line="${i}">${esc(l.text)}</textarea></div>`).join('')}
+  ${d.hand.length?`<h3>申し送りに載せる内容（自動で抽出）</h3>${d.hand.map(x=>`<div class="hand ${x.urgent?'urgent':''}">${x.urgent?'<b>【重要】</b>':''}${esc(x.text)}</div>`).join('')}`:''}
+  ${d.checks.length?`<h3>要確認（すべて確認すると確定できます）</h3>${d.checks.map((c,i)=>`<label class="chk"><input type="checkbox" data-chk="${i}" ${c.ok?'checked':''}><span>${esc(c.text)}</span></label>`).join('')}`:'<p class="note">要確認の項目はありません。</p>'}
+  <div class="actions"><button class="btn p" id="submitBtn" ${allOk?'':'disabled'}>確定して管理者に承認を依頼</button></div>
+  ${allOk?'':'<p class="note">要確認の項目に、すべてチェックを入れてください。</p>'}
+  </div>`;
+}
+
+function renderHand(m){
+  const items=[];
+  S.records.filter(r=>r.date>=addDays(TODAY,-1)).forEach(r=>r.handover.forEach(h=>items.push({...h,res:resName(r.residentId),date:r.date,status:r.status})));
+  items.sort((a,b)=>(b.urgent?1:0)-(a.urgent?1:0));
+  m.innerHTML=`<div class="card"><h2>申し送り（昨日・今日）</h2>
+  <p class="note">記録から自動で抜き出した内容を、利用者ごとにまとめて表示します。重要なものが上に来ます。</p>
+  ${items.length?items.map(x=>`<div class="hand ${x.urgent?'urgent':''}"><b>${esc(x.res)}</b>（${x.date}）${x.urgent?' <span class="badge st-returned">重要</span>':''}<br>${esc(x.text)}</div>`).join(''):'<p>まだ申し送りはありません。「記録入力」で記録を作ってみてください。</p>'}
+  </div>`;
+}
+
+const ST={submitted:['承認待ち','st-submitted'],returned:['差し戻し','st-returned'],approved:['承認済み','st-approved']};
+function renderAppr(m){
+  const isAdmin=me().role==='admin';
+  const list=[...S.records].sort((a,b)=>(a.status==='submitted'?-1:0)-(b.status==='submitted'?-1:0)||b.date.localeCompare(a.date));
+  m.innerHTML=`${isAdmin?'':'<div class="banner warn">承認できるのは管理者・サービス管理責任者です。右上の「ログイン」を「佐藤（サービス管理責任者）」に切り替えてお試しください。</div>'}
+  <div class="card"><h2>記録の確認・承認</h2>
+  <div class="actions" style="margin:0 0 8px"><button class="btn s sm" id="csvBtn">📄 帳票用データ（CSV）を出力</button></div>
+  <p class="note">CSVはExcelで開けます。本番では、既存のExcel帳票の様式にそのまま書き込みます。</p>
+  ${list.map(r=>`<div class="list-item"><div><b>${resName(r.residentId)}</b>　${r.date}<br><span class="badge ${ST[r.status][1]}">${ST[r.status][0]}</span> ${r.comment&&r.status==='returned'?`<span class="note">差し戻し理由：${esc(r.comment)}</span>`:''}</div>
+  <button class="btn s sm" data-open="${r.id}">開く</button></div>`).join('')}
+  </div>`;
+}
+
+function openRecord(id){
+  const r=S.records.find(x=>x.id===id), isAdmin=me().role==='admin';
+  const text=r.draft.map(l=>l.text).join('');
+  const canEdit=(isAdmin&&r.status==='submitted')||(!isAdmin&&r.status==='returned');
+  const md=document.getElementById('modal');
+  md.innerHTML=`<h2 style="margin-top:0">${resName(r.residentId)}　${r.date}　<span class="badge ${ST[r.status][1]}">${ST[r.status][0]}</span></h2>
+  <label class="f">記録本文${canEdit?'（修正できます。修正は履歴に残ります）':''}</label>
+  <textarea id="recText" ${canEdit?'':'readonly'} style="min-height:140px">${esc(text)}</textarea>
+  ${r.comment&&r.status==='returned'?`<div class="banner warn" style="margin-top:8px">差し戻し理由：${esc(r.comment)}</div>`:''}
+  <h3>版の履歴（修正前の内容も残ります）</h3>
+  <div class="tbl-wrap"><table><tr><th>日時</th><th>担当者</th><th>操作</th><th>内容</th></tr>
+  ${r.versions.map((v,i)=>`<tr><td>${v.at}</td><td>${esc(v.by)}</td><td>${v.act}</td><td>${i>0&&r.versions[i-1].text!==v.text?diffHtml(r.versions[i-1].text,v.text):esc(v.text.slice(0,60))+(v.text.length>60?'…':'')}</td></tr>`).join('')}
+  </table></div>
+  <div class="actions">
+    ${isAdmin&&r.status==='submitted'?`<button class="btn p" data-act="approve">承認する</button><button class="btn w" data-act="return">差し戻す</button>`:''}
+    ${!isAdmin&&r.status==='returned'?`<button class="btn p" data-act="resubmit">修正して再提出</button>`:''}
+    <button class="btn s" data-act="close">閉じる</button>
+  </div>`;
+  md.dataset.id=id;
+  document.getElementById('modalBg').classList.add('open');
+}
+function diffHtml(a,b){
+  let s=0;while(s<a.length&&s<b.length&&a[s]===b[s])s++;
+  let ea=a.length,eb=b.length;while(ea>s&&eb>s&&a[ea-1]===b[eb-1]){ea--;eb--}
+  const pre=a.slice(Math.max(0,s-12),s);
+  return `…${esc(pre)}<span class="diff-old">${esc(a.slice(s,ea))}</span><span class="diff-new">${esc(b.slice(s,eb))}</span>${esc(a.slice(ea,ea+12))}…`;
+}
+
+function runChecks(){
+  const out=[];
+  RESIDENTS.forEach(r=>{
+    const recs=S.records.filter(x=>x.residentId===r.id&&x.date===TODAY);
+    if(!recs.length) out.push({lv:'e',cat:'記録',msg:`${r.name}さんの本日の記録が未入力です。`});
+    recs.forEach(x=>{ if(x.input){
+      const nm=Object.entries(x.input.meds).filter(([k,v])=>v==='notyet').map(([k])=>k);
+      if(nm.length) out.push({lv:'w',cat:'服薬',msg:`${r.name}さん：服薬「${nm.join('・')}」が未のままです。`});
+    }});
+  });
+  S.records.filter(x=>x.status==='submitted').forEach(x=>out.push({lv:'w',cat:'承認',msg:`${resName(x.residentId)}さん（${x.date}）の記録が承認待ちです。`}));
+  S.records.filter(x=>x.status==='returned').forEach(x=>out.push({lv:'w',cat:'承認',msg:`${resName(x.residentId)}さん（${x.date}）の記録が差し戻し中です。`}));
+  S.shifts.forEach((s,i)=>{
+    if(/なし/.test(s.actual)) out.push({lv:'e',cat:'勤怠',msg:`${s.staff}：シフト ${s.shift} に対し、退勤の打刻がありません。`,fix:'shift'+i});
+    else{const st=s.shift.slice(0,5),ac=s.actual.slice(0,5);const diff=Math.abs(toMin(st)-toMin(ac));
+      if(diff>15) out.push({lv:'e',cat:'勤怠',msg:`${s.staff}：シフト開始 ${st} と出勤打刻 ${ac} が${diff}分ずれています。`,fix:'shift'+i});}
+  });
+  S.billing.forEach((b,i)=>{
+    const has=S.records.some(x=>x.residentId===b.residentId&&x.date===b.date&&x.status==='approved');
+    if(b.used&&!has) out.push({lv:'e',cat:'請求',msg:`請求チェックシートでは ${b.date} に${resName(b.residentId)}さんの利用がありますが、承認済みの支援記録がありません。`,fix:'bill'+i});
+  });
+  return out;
+}
+function toMin(h){const [a,b]=h.split(':').map(Number);return a*60+b}
+
+function renderCheck(m){
+  const res=runChecks();
+  const e=res.filter(x=>x.lv==='e').length,w=res.filter(x=>x.lv==='w').length;
+  m.innerHTML=`<div class="card"><h2>請求前・勤怠・記録チェック</h2>
+  <p class="note">記録・シフト・勤怠・請求チェックシートを照らし合わせて、漏れや食い違いを一覧にします。直したら「再チェック」を押してください。</p>
+  <div class="actions" style="margin:0 0 12px"><button class="btn p" id="recheckBtn">🔄 再チェック</button>
+  <span class="note" style="align-self:center">最終チェック：${S.lastCheck||'未実施'}　エラー ${e}件・注意 ${w}件</span></div>
+  ${res.length?res.map(x=>`<div class="err-item ${x.lv}"><span class="k">${x.lv==='e'?'エラー':'注意'}［${x.cat}］</span><span style="flex:1">${esc(x.msg)}</span>${x.fix?`<button class="btn s sm" data-fix="${x.fix}">直す（デモ）</button>`:''}</div>`).join(''):'<div class="err-item ok"><span class="k">OK</span><span>エラーはありません。</span></div>'}
+  </div>
+  <div class="card"><h2>シフトと勤怠実績（デモデータ）</h2><div class="tbl-wrap"><table><tr><th>職員</th><th>シフト</th><th>勤怠の打刻</th></tr>
+  ${S.shifts.map(s=>`<tr><td>${s.staff}</td><td>${s.shift}</td><td>${s.actual}</td></tr>`).join('')}</table></div></div>`;
+}
+
+function renderLog(m){
+  m.innerHTML=`<div class="card"><h2>操作履歴</h2>
+  <p class="note">だれが・いつ・何をしたかをすべて記録します。本番では、この履歴は後から書き換え・削除ができない形で保存します。</p>
+  <div class="tbl-wrap"><table><tr><th>日時</th><th>担当者</th><th>操作</th><th>対象</th><th>内容</th></tr>
+  ${S.audit.map(a=>`<tr><td style="white-space:nowrap">${a.at}</td><td>${esc(a.by)}</td><td>${esc(a.act)}</td><td>${esc(a.target)}</td><td>${a.html||esc(a.detail)}</td></tr>`).join('')}
+  </table></div></div>`;
+}
+
+// ===================== 音声入力 =====================
+let rec=null;
+function toggleMic(){
+  const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
+  if(!SR){toast('このブラウザは音声入力に対応していません。Chromeでお試しください。');return}
+  if(rec){rec.stop();return}
+  rec=new SR(); rec.lang='ja-JP'; rec.interimResults=true; rec.continuous=true;
+  const base=F.memo?F.memo+(/[。\n]$/.test(F.memo)?'':'。'):'';
+  let finalTxt='';
+  rec.onresult=ev=>{let interim='';for(let i=ev.resultIndex;i<ev.results.length;i++){const r=ev.results[i];if(r.isFinal)finalTxt+=r[0].transcript+'。';else interim+=r[0].transcript}
+    F.memo=base+finalTxt+interim; const ta=document.getElementById('memo'); if(ta) ta.value=F.memo};
+  rec.onend=()=>{F.memo=base+finalTxt;rec=null;render()};
+  rec.onerror=e=>{toast('音声入力を開始できませんでした（'+e.error+'）');};
+  rec.start(); render();
+}
+
+// ===================== イベント =====================
+document.addEventListener('click',ev=>{
+  const b=ev.target.closest('button'); if(!b) return;
+  const d=b.dataset;
+  if(d.tab){S.tab=d.tab;save();render();window.scrollTo(0,0);return}
+  if(d.res){F=F&&F.residentId===d.res?F:blankForm();F.residentId=d.res;render();return}
+  if(d.step){const k=d.step,step=parseFloat(d.d);const def={temp:36.5,sys:120,dia:75,pulse:70}[k];let v=F[k]===''?def:parseFloat(F[k])+step;F[k]=k==='temp'?v.toFixed(1):String(Math.round(v));F.draft=null;render();return}
+  if(d.chip){const [g,k,v]=d.chip.split('|');if(g==='meals')F.meals[k]=F.meals[k]===v?'':v;else if(g==='meds')F.meds[k]=F.meds[k]===v?'':v;else F[k]=F[k]===v?'':v;F.draft=null;render();return}
+  if(d.mood){const i=F.moods.indexOf(d.mood);i>=0?F.moods.splice(i,1):F.moods.push(d.mood);F.draft=null;render();return}
+  if(d.phrase!==undefined){F.memo=(F.memo&&!/[。\n]$/.test(F.memo)?F.memo+'。':F.memo||'')+PHRASES[d.phrase];F.draft=null;render();return}
+  if(b.id==='micBtn'){toggleMic();return}
+  if(b.id==='clearBtn'){F=blankForm();render();return}
+  if(b.id==='makeBtn'){F.draft=makeDraft(F);render();setTimeout(()=>document.getElementById('draftCard')?.scrollIntoView({behavior:'smooth'}),50);return}
+  if(b.id==='submitBtn'){submitDraft();return}
+  if(d.open){openRecord(d.open);return}
+  if(d.act){recordAction(d.act);return}
+  if(b.id==='csvBtn'){exportCsv();return}
+  if(b.id==='recheckBtn'){S.lastCheck=now();save();log('再チェック','チェック一覧',`エラー${runChecks().filter(x=>x.lv==='e').length}件`);render();toast('再チェックしました');return}
+  if(d.fix){applyFix(d.fix);return}
+  if(b.id==='resetBtn'){if(confirm('デモの入力内容をすべて消して、最初の状態に戻しますか？')){S=seed();F=null;save();render();toast('初期状態に戻しました')}return}
+});
+document.addEventListener('input',ev=>{
+  const el=ev.target;
+  if(el.id==='memo'){F.memo=el.value;if(F.draft){F.draft=null;const c=document.getElementById('draftCard');if(c)c.remove()}}
+  if(el.dataset.num){F[el.dataset.num]=el.value;F.draft=null;const c=document.getElementById('draftCard');if(c)c.remove()}
+  if(el.dataset.line){F.draft.lines[+el.dataset.line].text=el.value}
+});
+document.addEventListener('change',ev=>{
+  const el=ev.target;
+  if(el.dataset.chk!==undefined){F.draft.checks[+el.dataset.chk].ok=el.checked;const y=window.scrollY;render();window.scrollTo(0,y)}
+  if(el.id==='userSel'){S.user=el.value;save();render();toast(me().name+' でログインしました')}
+  if(el.id==='langSel'){S.lang=el.value;save();render()}
+});
+document.getElementById('modalBg').addEventListener('click',e=>{if(e.target.id==='modalBg')closeModal()});
+function closeModal(){document.getElementById('modalBg').classList.remove('open')}
+
+function submitDraft(){
+  const d=F.draft, text=d.lines.map(l=>l.text).join('');
+  const id='r'+Date.now();
+  // 同じ日の同じ利用者の未承認記録があれば置き換えず、新しく追加（デモ簡略化）
+  S.records.push({id,residentId:F.residentId,date:TODAY,input:JSON.parse(JSON.stringify({meals:F.meals,meds:F.meds})),
+    draft:d.lines.map(l=>({text:l.text,src:l.src})),handover:d.hand,checks:d.checks,status:'submitted',createdBy:S.user,comment:'',
+    versions:[{at:now(),by:me().name,text,act:'確定・承認依頼'}]});
+  log('確定・承認依頼',resName(F.residentId)+'さん '+TODAY,`要確認${d.checks.length}件を確認済み`);
+  F=blankForm(); S.tab='appr'; save(); render(); window.scrollTo(0,0);
+  toast('記録を確定し、管理者に承認を依頼しました');
+}
+function recordAction(act){
+  const md=document.getElementById('modal'),r=S.records.find(x=>x.id===md.dataset.id);
+  if(act==='close'){closeModal();return}
+  const old=r.versions[r.versions.length-1].text, ta=document.getElementById('recText'), nw=ta?ta.value:old;
+  const changed=nw!==old, target=resName(r.residentId)+'さん '+r.date;
+  if(changed){r.versions.push({at:now(),by:me().name,text:nw,act:'修正'});r.draft=[{text:nw,src:'修正後'}];
+    S.audit.unshift({at:now(),by:me().name,act:'修正',target,detail:'',html:diffHtml(old,nw)})}
+  if(act==='approve'){r.status='approved';r.approvedBy=S.user;r.versions.push({at:now(),by:me().name,text:nw,act:'承認'});log('承認',target,changed?'修正のうえ承認':'内容を確認して承認');toast('承認しました')}
+  if(act==='return'){const c=prompt('差し戻しの理由を入力してください','食事量の記載が不十分です。');if(c===null)return;r.status='returned';r.comment=c;r.versions.push({at:now(),by:me().name,text:nw,act:'差し戻し'});log('差し戻し',target,c);toast('差し戻しました')}
+  if(act==='resubmit'){r.status='submitted';r.versions.push({at:now(),by:me().name,text:nw,act:'再提出'});log('再提出',target,changed?'修正して再提出':'再提出');toast('再提出しました')}
+  save();closeModal();render();
+}
+function applyFix(k){
+  if(k.startsWith('shift')){const s=S.shifts[+k.slice(5)];const old=s.actual;
+    s.actual=s.shift.replace('翌','');log('勤怠修正',s.staff,`${old} → ${s.actual}（管理者確認済みとして修正）`);}
+  if(k.startsWith('bill')){const b=S.billing[+k.slice(4)];
+    const text=`${resName(b.residentId)}さん。（後日入力）体温36.4℃。食事は全量摂取。服薬はすべて済。夜間よく眠れていた。`;
+    S.records.push({id:'fix'+Date.now(),residentId:b.residentId,date:b.date,input:null,draft:[{text,src:'後日入力'}],handover:[],checks:[],status:'approved',createdBy:S.user,approvedBy:'u3',comment:'',
+      versions:[{at:now(),by:me().name,text,act:'後日入力・承認'}]});
+    log('記録の後日入力',resName(b.residentId)+'さん '+b.date,'請求チェックで検出された記録漏れを補完');}
+  save();render();toast('修正しました。「再チェック」で確認できます');
+}
+function exportCsv(){
+  const head=['日付','利用者','状態','記録本文','承認者'];
+  const rows=S.records.map(r=>[r.date,resName(r.residentId),ST[r.status][0],r.draft.map(l=>l.text).join(''),r.approvedBy?USERS.find(u=>u.id===r.approvedBy).name:'']);
+  const csv='﻿'+[head,...rows].map(r=>r.map(c=>'"'+String(c).replace(/"/g,'""')+'"').join(',')).join('\r\n');
+  const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv'}));a.download='支援記録_'+TODAY+'.csv';a.click();
+  log('帳票出力','支援記録CSV',rows.length+'件');
+}
+
+load(); render();
+</script>
+</body>
+</html>
